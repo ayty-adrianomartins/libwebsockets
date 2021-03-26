@@ -1263,7 +1263,9 @@ lws_system_cpd_start(struct lws_context *cx)
 #endif
 }
 
+#if (defined(LWS_WITH_SYS_STATE) && defined(LWS_WITH_SYS_SMD)) || !defined(LWS_WITH_NO_LOGS)
 static const char *cname[] = { "Unknown", "OK", "Captive", "No internet" };
+#endif
 
 void
 lws_system_cpd_set(struct lws_context *cx, lws_cpd_result_t result)
@@ -1271,7 +1273,9 @@ lws_system_cpd_set(struct lws_context *cx, lws_cpd_result_t result)
 	if (cx->captive_portal_detect != LWS_CPD_UNKNOWN)
 		return;
 
+#if !defined(LWS_WITH_NO_LOGS)
 	lwsl_notice("%s: setting CPD result %s\n", __func__, cname[result]);
+#endif
 
 	cx->captive_portal_detect = (uint8_t)result;
 
@@ -1395,15 +1399,6 @@ lws_context_destroy3(struct lws_context *context)
 #if LWS_MAX_SMP > 1
 	lws_mutex_refcount_destroy(&context->mr);
 #endif
-
-	/* drop any lingering deferred vhost frees */
-
-	while (context->deferred_free_list) {
-		struct lws_deferred_free *df = context->deferred_free_list;
-
-		context->deferred_free_list = df->next;
-		lws_free(df);
-	};
 
 #if defined(LWS_WITH_EVLIB_PLUGINS) && defined(LWS_WITH_EVENT_LIBS)
 	if (context->evlib_plugin_list)
@@ -1535,10 +1530,6 @@ lws_context_destroy2(struct lws_context *context)
 
 	if (context->external_baggage_free_on_destroy)
 		free(context->external_baggage_free_on_destroy);
-
-#if defined(LWS_WITH_NETWORK)
-	lws_check_deferred_free(context, 0, 1);
-#endif
 
 	lws_context_unlock(context); /* } context ------ */
 
